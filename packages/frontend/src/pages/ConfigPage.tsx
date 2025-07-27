@@ -65,13 +65,13 @@ export function ConfigPage() {
   if (isLoading) {
     return (
       <div className="animate-pulse space-y-6">
-        <div className="h-8 bg-gray-200 rounded w-1/4"></div>
+        <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-1/4"></div>
         <div className="space-y-4">
           {[...Array(3)].map((_, i) => (
             <div key={i} className="card">
               <div className="card-content">
-                <div className="h-6 bg-gray-200 rounded mb-2"></div>
-                <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded mb-2"></div>
+                <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4"></div>
               </div>
             </div>
           ))}
@@ -84,8 +84,8 @@ export function ConfigPage() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Configuration</h1>
-          <p className="mt-1 text-sm text-gray-600">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Configuration</h1>
+          <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
             Configure your AIProxy security gateway settings
           </p>
         </div>
@@ -116,7 +116,7 @@ export function ConfigPage() {
           <div className="card-header">
             <div className="flex items-center">
               <Settings className="h-5 w-5 text-gray-400 mr-2" />
-              <h3 className="text-lg font-medium text-gray-900">General Settings</h3>
+              <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">General Settings</h3>
             </div>
           </div>
           <div className="card-content space-y-4">
@@ -135,7 +135,7 @@ export function ConfigPage() {
                 <option value="CLAUDE">Claude (Anthropic)</option>
                 <option value="GEMINI">Gemini (Google)</option>
               </select>
-              <p className="mt-1 text-sm text-gray-500">
+              <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
                 Default provider for AI requests when not specified
               </p>
             </div>
@@ -147,17 +147,17 @@ export function ConfigPage() {
           <div className="card-header">
             <div className="flex items-center">
               <Shield className="h-5 w-5 text-gray-400 mr-2" />
-              <h3 className="text-lg font-medium text-gray-900">Security Settings</h3>
+              <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">Security Settings</h3>
             </div>
           </div>
           <div className="card-content space-y-4">
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <label htmlFor="enablePIIDetection" className="text-sm font-medium text-gray-900">
+                  <label htmlFor="enablePIIDetection" className="text-sm font-medium text-gray-900 dark:text-gray-100">
                     PII Detection
                   </label>
-                  <p className="text-sm text-gray-500">
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
                     Automatically detect and handle personally identifiable information
                   </p>
                 </div>
@@ -173,10 +173,10 @@ export function ConfigPage() {
 
               <div className="flex items-center justify-between">
                 <div>
-                  <label htmlFor="enableRuleEngine" className="text-sm font-medium text-gray-900">
+                  <label htmlFor="enableRuleEngine" className="text-sm font-medium text-gray-900 dark:text-gray-100">
                     Security Rule Engine
                   </label>
-                  <p className="text-sm text-gray-500">
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
                     Apply custom security rules to requests and responses
                   </p>
                 </div>
@@ -192,10 +192,10 @@ export function ConfigPage() {
 
               <div className="flex items-center justify-between">
                 <div>
-                  <label htmlFor="enableAuditLogging" className="text-sm font-medium text-gray-900">
+                  <label htmlFor="enableAuditLogging" className="text-sm font-medium text-gray-900 dark:text-gray-100">
                     Audit Logging
                   </label>
-                  <p className="text-sm text-gray-500">
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
                     Log all requests and security events for compliance
                   </p>
                 </div>
@@ -217,7 +217,7 @@ export function ConfigPage() {
           <div className="card-header">
             <div className="flex items-center">
               <Zap className="h-5 w-5 text-gray-400 mr-2" />
-              <h3 className="text-lg font-medium text-gray-900">Rate Limiting</h3>
+              <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">Rate Limiting</h3>
             </div>
           </div>
           <div className="card-content space-y-4">
@@ -235,7 +235,7 @@ export function ConfigPage() {
                   value={formData.rateLimitMaxRequests}
                   onChange={handleInputChange}
                 />
-                <p className="mt-1 text-sm text-gray-500">
+                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
                   Maximum requests per time window
                 </p>
               </div>
@@ -260,7 +260,7 @@ export function ConfigPage() {
                     setHasChanges(true)
                   }}
                 />
-                <p className="mt-1 text-sm text-gray-500">
+                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
                   Time window for rate limiting
                 </p>
               </div>
@@ -271,41 +271,41 @@ export function ConfigPage() {
         {/* Available Models */}
         <div className="card">
           <div className="card-header">
-            <h3 className="text-lg font-medium text-gray-900">Available Models</h3>
+            <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">Available Models</h3>
           </div>
           <div className="card-content">
             {models?.length ? (
               <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 md:rounded-lg">
-                <table className="min-w-full divide-y divide-gray-300">
-                  <thead className="bg-gray-50">
+                <table className="min-w-full divide-y divide-gray-300 dark:divide-gray-600">
+                  <thead className="bg-gray-50 dark:bg-gray-800">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                         Model
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                         Provider
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                         Context Length
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                         Cost (per 1K tokens)
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
+                  <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
                     {models.map((model) => (
                       <tr key={model.id}>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">
                           {model.name}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                           {model.provider}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                           {model.contextLength.toLocaleString()}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                           ${model.inputCostPer1kTokens.toFixed(4)} / ${model.outputCostPer1kTokens.toFixed(4)}
                         </td>
                       </tr>
@@ -316,8 +316,8 @@ export function ConfigPage() {
             ) : (
               <div className="text-center py-8">
                 <AlertCircle className="mx-auto h-12 w-12 text-gray-400" />
-                <h3 className="mt-2 text-sm font-medium text-gray-900">No models available</h3>
-                <p className="mt-1 text-sm text-gray-500">
+                <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-gray-100">No models available</h3>
+                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
                   Configure your AI provider API keys to see available models.
                 </p>
               </div>

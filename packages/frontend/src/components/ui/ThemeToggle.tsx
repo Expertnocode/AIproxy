@@ -19,7 +19,7 @@ export function ThemeToggle({ variant = 'button', className }: ThemeToggleProps)
       system: <ComputerDesktopIcon className="h-4 w-4" />
     }
 
-    const nextTheme = theme === 'light' ? 'dark' : theme === 'dark' ? 'system' : 'light'
+    const nextTheme = theme === 'light' ? 'dark' : 'light'
 
     return (
       <Button
@@ -27,7 +27,7 @@ export function ThemeToggle({ variant = 'button', className }: ThemeToggleProps)
         size="sm"
         onClick={() => setTheme(nextTheme)}
         className={cn('w-9 h-9 p-0', className)}
-        icon={icons[theme]}
+        icon={icons[theme === 'system' ? 'light' : theme]}
       />
     )
   }
