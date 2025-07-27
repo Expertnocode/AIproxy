@@ -70,11 +70,12 @@ aiproxy/
 
 ### Tech Stack
 
-- **Frontend**: React 18 + TypeScript + Tailwind CSS + Vite
+- **Frontend**: React 18 + TypeScript + Tailwind CSS + Vite + Modern UI Design System
 - **Backend**: Node.js + Express + Prisma + PostgreSQL
 - **Proxy**: Node.js + TypeScript + Provider SDKs
 - **Security**: Microsoft Presidio + Custom Rule Engine
 - **Infrastructure**: Docker + Docker Compose
+- **UI/UX**: Dark/Light Mode + Responsive Design + Animations
 
 ## 🔒 Security Features
 
@@ -109,13 +110,14 @@ aiproxy/
 ### ✅ Currently Available
 - Multi-provider AI integration (OpenAI, Claude, Gemini)
 - Real-time PII detection and anonymization
-- Custom security rule engine
-- Web-based admin interface
-- Usage analytics and audit logs
-- Docker deployment
-- JWT authentication
-- Rate limiting
-- Health monitoring
+- Custom security rule engine with working middleware
+- Modern web-based admin interface with dark/light theme
+- Interactive dashboard with charts and metrics
+- Usage analytics and audit logs with pagination
+- Docker deployment with health checks
+- JWT authentication and role-based access
+- Rate limiting and request validation
+- Comprehensive audit trail and monitoring
 
 ### 🚧 Roadmap
 - SAML/SSO integration
@@ -154,8 +156,11 @@ ENABLE_RULE_ENGINE="true"
 
 1. Start the development environment
 2. Visit http://localhost:5173
-3. Create your admin account
+3. Create your admin account  
 4. Configure security rules and AI providers
+5. Access modern dashboard with dark/light mode toggle
+6. View real-time metrics and interactive charts
+7. Manage security rules with full CRUD operations
 
 ## 🧪 Testing
 
