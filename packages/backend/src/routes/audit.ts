@@ -128,6 +128,106 @@ auditRoutes.get('/usage', requireUser, async (req, res, next) => {
   }
 });
 
+auditRoutes.get('/analytics/activity', requireUser, async (req, res, next) => {
+  try {
+    const userId = req.user!.role === 'ADMIN' ? undefined : req.user!.id;
+    const where = userId ? { userId } : {};
+
+    // Get last 24 hours of data, grouped by hour
+    const now = new Date();
+    const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+
+    // Get all usage data for the last 24 hours
+    const allUsageData = await prisma.usage.findMany({
+      where: {
+        ...where,
+        timestamp: {
+          gte: twentyFourHoursAgo
+        }
+      },
+      select: {
+        timestamp: true,
+        totalTokens: true,
+        piiDetected: true
+      },
+      orderBy: {
+        timestamp: 'asc'
+      }
+    });
+
+    // Initialize all hours with 0
+    const hourlyStats = new Map();
+    for (let i = 0; i < 24; i++) {
+      const hour = new Date(twentyFourHoursAgo.getTime() + i * 60 * 60 * 1000);
+      const hourKey = hour.getHours();
+      hourlyStats.set(hourKey, {
+        time: hour.getHours().toString().padStart(2, '0') + ':00',
+        requests: 0,
+        tokens: 0,
+        pii: 0
+      });
+    }
+
+    // Process all data and group by hour
+    for (const item of allUsageData) {
+      const hour = item.timestamp.getHours();
+      if (hourlyStats.has(hour)) {
+        const stats = hourlyStats.get(hour);
+        stats.requests += 1;
+        stats.tokens += item.totalTokens || 0;
+        if (item.piiDetected) {
+          stats.pii += 1;
+        }
+      }
+    }
+
+    const chartData = Array.from(hourlyStats.values()).sort((a, b) => 
+      parseInt(a.time.split(':')[0]) - parseInt(b.time.split(':')[0])
+    );
+
+
+    res.json(createAPIResponse(chartData, undefined, req.id));
+  } catch (error) {
+    next(error);
+  }
+});
+
+auditRoutes.get('/analytics/providers', requireUser, async (req, res, next) => {
+  try {
+    const userId = req.user!.role === 'ADMIN' ? undefined : req.user!.id;
+    const where = userId ? { userId } : {};
+
+    const providerStats = await prisma.usage.groupBy({
+      by: ['provider'],
+      where,
+      _count: {
+        id: true
+      },
+      orderBy: {
+        _count: {
+          id: 'desc'
+        }
+      }
+    });
+
+    const total = providerStats.reduce((sum, stat) => sum + stat._count.id, 0);
+    
+    const chartData = providerStats.map((stat, index) => {
+      const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
+      return {
+        name: stat.provider,
+        value: total > 0 ? Math.round((stat._count.id / total) * 100) : 0,
+        count: stat._count.id,
+        color: colors[index % colors.length]
+      };
+    });
+
+    res.json(createAPIResponse(chartData, undefined, req.id));
+  } catch (error) {
+    next(error);
+  }
+});
+
 auditRoutes.get('/analytics/summary', requireUser, async (req, res, next) => {
   try {
     const userId = req.user!.role === 'ADMIN' ? undefined : req.user!.id;

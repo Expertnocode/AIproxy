@@ -65,21 +65,6 @@ interface DashboardStats {
   }>
 }
 
-// Mock data for charts
-const mockTimeSeriesData = [
-  { time: '00:00', requests: 12, tokens: 1200, pii: 2 },
-  { time: '04:00', requests: 8, tokens: 800, pii: 1 },
-  { time: '08:00', requests: 45, tokens: 4500, pii: 8 },
-  { time: '12:00', requests: 67, tokens: 6700, pii: 12 },
-  { time: '16:00', requests: 89, tokens: 8900, pii: 15 },
-  { time: '20:00', requests: 54, tokens: 5400, pii: 9 },
-]
-
-const mockProviderData = [
-  { name: 'OpenAI', value: 45, color: '#10b981' },
-  { name: 'Claude', value: 30, color: '#3b82f6' },
-  { name: 'Gemini', value: 25, color: '#f59e0b' },
-]
 
 export function DashboardPage() {
   const navigate = useNavigate()
@@ -88,6 +73,18 @@ export function DashboardPage() {
     queryKey: ['dashboard-stats'],
     queryFn: () => apiService.get<DashboardStats>('/audit/analytics/summary'),
     refetchInterval: 30000
+  })
+
+  const { data: activityData, isLoading: isLoadingActivity } = useQuery({
+    queryKey: ['dashboard-activity'],
+    queryFn: () => apiService.get<Array<{time: string, requests: number, tokens: number, pii: number}>>('/audit/analytics/activity'),
+    refetchInterval: 60000
+  })
+
+  const { data: providerData, isLoading: isLoadingProviders } = useQuery({
+    queryKey: ['dashboard-providers'],
+    queryFn: () => apiService.get<Array<{name: string, value: number, count: number, color: string}>>('/audit/analytics/providers'),
+    refetchInterval: 60000
   })
 
   if (error) {
@@ -230,12 +227,44 @@ export function DashboardPage() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="h-72 flex items-center justify-center bg-gray-50 dark:bg-gray-700 rounded-lg">
-              <div className="text-center">
-                <TrendingUp className="h-12 w-12 text-gray-400 mx-auto mb-2" />
-                <p className="text-gray-600 dark:text-gray-400">Chart will be here</p>
+            {isLoadingActivity ? (
+              <div className="h-72 flex items-center justify-center bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
+                  <p className="text-gray-600 dark:text-gray-400">Loading chart...</p>
+                </div>
               </div>
-            </div>
+            ) : activityData && activityData.length > 0 ? (
+              <LineChart
+                data={activityData.map(item => ({
+                  ...item,
+                  tokens: Math.round(item.tokens / 100) // Scale down tokens for better visualization
+                }))}
+                lines={[
+                  { dataKey: 'requests', color: '#3b82f6', name: 'Requests', strokeWidth: 2 },
+                  { dataKey: 'tokens', color: '#10b981', name: 'Tokens (÷100)', strokeWidth: 2 },
+                  { dataKey: 'pii', color: '#f59e0b', name: 'PII Detections', strokeWidth: 4, dotSize: 6 }
+                ]}
+                xAxisDataKey="time"
+                height={288}
+                showGrid={true}
+                showLegend={true}
+                formatTooltip={(value, name) => {
+                  if (name === 'Tokens (÷100)') {
+                    return [(value * 100).toLocaleString(), 'Tokens']
+                  }
+                  return [value.toLocaleString(), name]
+                }}
+              />
+            ) : (
+              <div className="h-72 flex items-center justify-center bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <div className="text-center">
+                  <TrendingUp className="h-12 w-12 text-gray-400 mx-auto mb-2" />
+                  <p className="text-gray-600 dark:text-gray-400">No activity data yet</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">Start making requests to see charts</p>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -247,14 +276,35 @@ export function DashboardPage() {
             </h3>
           </CardHeader>
           <CardContent>
-            <div className="h-72 flex items-center justify-center bg-gray-50 dark:bg-gray-700 rounded-lg">
-              <div className="text-center">
-                <div className="w-16 h-16 bg-blue-500 rounded-full mx-auto mb-2 flex items-center justify-center">
-                  <span className="text-white font-bold">100%</span>
+            {isLoadingProviders ? (
+              <div className="h-72 flex items-center justify-center bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
+                  <p className="text-gray-600 dark:text-gray-400">Loading providers...</p>
                 </div>
-                <p className="text-gray-600 dark:text-gray-400">Provider Distribution</p>
               </div>
-            </div>
+            ) : providerData && providerData.length > 0 ? (
+              <PieChart
+                data={providerData}
+                height={288}
+                showLegend={true}
+                outerRadius={90}
+                formatTooltip={(value, name) => [
+                  `${value}%`, 
+                  `${providerData.find(p => p.name === name)?.count || 0} requests`
+                ]}
+              />
+            ) : (
+              <div className="h-72 flex items-center justify-center bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <div className="text-center">
+                  <div className="w-16 h-16 bg-blue-500 rounded-full mx-auto mb-2 flex items-center justify-center">
+                    <span className="text-white font-bold">0</span>
+                  </div>
+                  <p className="text-gray-600 dark:text-gray-400">No provider data yet</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">Start making requests to see distribution</p>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

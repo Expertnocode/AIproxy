@@ -18,6 +18,7 @@ interface LineChartProps {
     color: string
     name?: string
     strokeWidth?: number
+    dotSize?: number
   }>
   xAxisDataKey: string
   height?: number
@@ -93,8 +94,8 @@ export function LineChart({
             stroke={line.color}
             strokeWidth={line.strokeWidth || 2}
             name={line.name || line.dataKey}
-            dot={{ fill: line.color, r: 4 }}
-            activeDot={{ r: 6, fill: line.color }}
+            dot={{ fill: line.color, r: line.dotSize || 4 }}
+            activeDot={{ r: (line.dotSize || 4) + 2, fill: line.color }}
           />
         ))}
       </RechartsLineChart>
