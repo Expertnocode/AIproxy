@@ -107,6 +107,8 @@ proxyRoutes.post('/chat', async (req, res, next) => {
         provider.calculateCost(response.usage, processedRequest.model) : 
         undefined;
 
+      const piiDetected = processingResults.some(r => r.matches && r.matches.length > 0);
+      
       logger.info('Proxy request completed', {
         requestId: req.id,
         provider: processedRequest.provider,
@@ -114,10 +116,23 @@ proxyRoutes.post('/chat', async (req, res, next) => {
         processingTime,
         usage: response.usage,
         cost,
+        piiDetected,
         securityProcessed: processingResults.length > 0
       });
 
-      res.json(createAPIResponse(response, undefined, req.id));
+      // Add security metadata to response
+      const responseWithSecurity = {
+        ...response,
+        piiDetected,
+        hasAnonymization: piiDetected,
+        securityProcessing: {
+          processed: processingResults.length > 0,
+          piiDetected,
+          rulesTriggered: processingResults.filter(r => r.ruleTriggered).length
+        }
+      };
+
+      res.json(createAPIResponse(responseWithSecurity, undefined, req.id));
     }
   } catch (error) {
     next(error);

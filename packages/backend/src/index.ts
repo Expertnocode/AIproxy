@@ -12,6 +12,7 @@ import { userRoutes } from './routes/users';
 import { ruleRoutes } from './routes/rules';
 import { auditRoutes } from './routes/audit';
 import { configRoutes } from './routes/config';
+import { proxyRoutes } from './routes/proxy';
 
 dotenv.config();
 
@@ -53,6 +54,7 @@ app.use('/api/v1/users', userRoutes);
 app.use('/api/v1/rules', ruleRoutes);
 app.use('/api/v1/audit', auditRoutes);
 app.use('/api/v1/config', configRoutes);
+app.use('/api/v1/proxy', proxyRoutes);
 
 app.use('*', (req, res) => {
   res.status(404).json(createAPIResponse(undefined, {

@@ -23,6 +23,7 @@ model User {
   rules    SecurityRule[]
   sessions UserSession[]
   auditLogs AuditLog[]
+  usage    Usage[]
 
   @@map("users")
 }
@@ -107,6 +108,8 @@ model Usage {
   rulesTriggered  String[]   @map("rules_triggered")
   timestamp       DateTime   @default(now())
   requestId       String     @map("request_id")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("usage")
   @@index([userId])

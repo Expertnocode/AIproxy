@@ -1,5 +1,6 @@
 import React from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { useNavigate } from 'react-router-dom'
 import { 
   Shield, 
   Activity, 
@@ -33,6 +34,28 @@ interface DashboardStats {
     totalCost: number
     piiDetections: number
   }
+  trends?: {
+    requests: {
+      thisWeek: number
+      lastWeek: number
+      change: { value: number; direction: 'up' | 'down' | 'neutral' }
+    }
+    tokens: {
+      thisWeek: number
+      lastWeek: number
+      change: { value: number; direction: 'up' | 'down' | 'neutral' }
+    }
+    cost: {
+      thisWeek: number
+      lastWeek: number
+      change: { value: number; direction: 'up' | 'down' | 'neutral' }
+    }
+    pii: {
+      thisWeek: number
+      lastWeek: number
+      change: { value: number; direction: 'up' | 'down' | 'neutral' }
+    }
+  }
   recentActivity: Array<{
     provider: string
     model: string
@@ -59,6 +82,8 @@ const mockProviderData = [
 ]
 
 export function DashboardPage() {
+  const navigate = useNavigate()
+  
   const { data: stats, isLoading, error } = useQuery({
     queryKey: ['dashboard-stats'],
     queryFn: () => apiService.get<DashboardStats>('/audit/analytics/summary'),
@@ -102,7 +127,12 @@ export function DashboardPage() {
           <Badge variant="success" icon={<Shield className="h-3 w-3" />}>
             All Systems Operational
           </Badge>
-          <Button variant="outline" size="sm" icon={<Eye className="h-4 w-4" />}>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            icon={<Eye className="h-4 w-4" />}
+            onClick={() => navigate('/audit')}
+          >
             View Logs
           </Button>
         </div>
@@ -116,26 +146,30 @@ export function DashboardPage() {
           description="API calls processed"
           icon={<Activity className="h-6 w-6" />}
           color="blue"
-          trend={{
-            value: 12.5,
-            label: "vs last week",
-            direction: "up"
-          }}
+          {...(stats?.trends?.requests && {
+            trend: {
+              value: Math.round(stats.trends.requests.change.value * 10) / 10,
+              label: "vs last week",
+              direction: stats.trends.requests.change.direction
+            }
+          })}
           loading={isLoading}
           className="animate-slide-up"
         />
         
         <MetricCard
-          title="Tokens Processed"
+          title="Tokens used"
           value={formatNumber(stats?.summary.totalTokens ?? 0)}
           description="Total token usage"
           icon={<Database className="h-6 w-6" />}
           color="green"
-          trend={{
-            value: 8.3,
-            label: "vs last week",
-            direction: "up"
-          }}
+          {...(stats?.trends?.tokens && {
+            trend: {
+              value: Math.round(stats.trends.tokens.change.value * 10) / 10,
+              label: "vs last week",
+              direction: stats.trends.tokens.change.direction
+            }
+          })}
           loading={isLoading}
           className="animate-slide-up"
           style={{ animationDelay: '0.1s' }}
@@ -147,11 +181,13 @@ export function DashboardPage() {
           description="Sensitive data blocked"
           icon={<Shield className="h-6 w-6" />}
           color="yellow"
-          trend={{
-            value: 15.2,
-            label: "vs last week",
-            direction: "up"
-          }}
+          {...(stats?.trends?.pii && {
+            trend: {
+              value: Math.round(stats.trends.pii.change.value * 10) / 10,
+              label: "vs last week",
+              direction: stats.trends.pii.change.direction
+            }
+          })}
           loading={isLoading}
           className="animate-slide-up"
           style={{ animationDelay: '0.2s' }}
@@ -163,11 +199,13 @@ export function DashboardPage() {
           description="API usage cost"
           icon={<DollarSign className="h-6 w-6" />}
           color="purple"
-          trend={{
-            value: 2.1,
-            label: "vs last week",
-            direction: "down"
-          }}
+          {...(stats?.trends?.cost && {
+            trend: {
+              value: Math.round(stats.trends.cost.change.value * 10) / 10,
+              label: "vs last week",
+              direction: stats.trends.cost.change.direction
+            }
+          })}
           loading={isLoading}
           className="animate-slide-up"
           style={{ animationDelay: '0.3s' }}
@@ -230,7 +268,11 @@ export function DashboardPage() {
               <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                 Recent Activity
               </h3>
-              <Button variant="ghost" size="sm">
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={() => navigate('/audit')}
+              >
                 View All
               </Button>
             </div>
@@ -348,15 +390,27 @@ export function DashboardPage() {
               </h3>
             </CardHeader>
             <CardContent className="space-y-3">
-              <Button className="w-full justify-start" variant="outline">
+              <Button 
+                className="w-full justify-start" 
+                variant="outline"
+                onClick={() => navigate('/rules')}
+              >
                 <Shield className="h-4 w-4 mr-2" />
                 Create Security Rule
               </Button>
-              <Button className="w-full justify-start" variant="outline">
+              <Button 
+                className="w-full justify-start" 
+                variant="outline"
+                onClick={() => navigate('/config')}
+              >
                 <Users className="h-4 w-4 mr-2" />
                 Manage API Keys
               </Button>
-              <Button className="w-full justify-start" variant="outline">
+              <Button 
+                className="w-full justify-start" 
+                variant="outline"
+                onClick={() => navigate('/audit')}
+              >
                 <Eye className="h-4 w-4 mr-2" />
                 View Audit Logs
               </Button>

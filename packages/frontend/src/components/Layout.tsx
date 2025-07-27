@@ -7,7 +7,8 @@ import {
   FileText, 
   LogOut,
   Menu,
-  X
+  X,
+  MessageSquare
 } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import { ThemeToggle } from './ui/ThemeToggle'
@@ -19,6 +20,7 @@ interface LayoutProps {
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: BarChart3 },
+  { name: 'AI Chat', href: '/chat', icon: MessageSquare },
   { name: 'Security Rules', href: '/rules', icon: Shield },
   { name: 'Configuration', href: '/config', icon: Settings },
   { name: 'Audit Logs', href: '/audit', icon: FileText },

@@ -2,7 +2,6 @@
   "extends": "../../tsconfig.json",
   "compilerOptions": {
     "outDir": "./dist",
-    "rootDir": "./src",
     "module": "CommonJS",
     "target": "ES2022",
     "types": ["node", "jest"],
@@ -12,7 +11,8 @@
     }
   },
   "include": [
-    "src/**/*"
+    "src/**/*",
+    "../shared/src/**/*"
   ],
   "exclude": [
     "node_modules",
