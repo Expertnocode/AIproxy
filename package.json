@@ -1,0 +1,39 @@
+{
+  "name": "aiproxy",
+  "version": "0.1.0",
+  "description": "Secure AI gateway for enterprises",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "cd packages/shared && npm run build && cd ../backend && npm run build && cd ../frontend && npm run build && cd ../proxy && npm run build && cd ../..",
+    "dev": "concurrently \"cd packages/backend && npm run dev\" \"cd packages/frontend && npm run dev\" \"cd packages/proxy && npm run dev\"",
+    "test": "cd packages/backend && npm test && cd ../frontend && npm test && cd ../proxy && npm test && cd ../..",
+    "lint": "cd packages/backend && npm run lint && cd ../frontend && npm run lint && cd ../proxy && npm run lint && cd ../..",
+    "typecheck": "cd packages/backend && npm run typecheck && cd ../frontend && npm run typecheck && cd ../proxy && npm run typecheck && cd ../..",
+    "clean": "rm -rf node_modules packages/*/node_modules packages/*/dist"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "concurrently": "^8.2.2",
+    "typescript": "^5.3.0"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Expertnocode/AIproxy.git"
+  },
+  "license": "AGPL-3.0",
+  "keywords": [
+    "ai",
+    "proxy",
+    "security",
+    "enterprise",
+    "pii",
+    "anonymization"
+  ]
+}

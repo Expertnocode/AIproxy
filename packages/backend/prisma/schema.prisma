@@ -1,0 +1,146 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id          String    @id @default(cuid())
+  email       String    @unique
+  name        String
+  passwordHash String   @map("password_hash")
+  role        UserRole  @default(USER)
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  lastLoginAt DateTime? @map("last_login_at")
+
+  rules    SecurityRule[]
+  sessions UserSession[]
+  auditLogs AuditLog[]
+
+  @@map("users")
+}
+
+model UserSession {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  token     String   @unique
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_sessions")
+}
+
+model SecurityRule {
+  id          String     @id @default(cuid())
+  name        String
+  description String?
+  pattern     String
+  action      RuleAction
+  enabled     Boolean    @default(true)
+  priority    Int        @default(0)
+  userId      String     @map("user_id")
+  createdAt   DateTime   @default(now()) @map("created_at")
+  updatedAt   DateTime   @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("security_rules")
+  @@index([userId, enabled])
+  @@index([priority])
+}
+
+model AuditLog {
+  id        String        @id @default(cuid())
+  eventType AuditEventType @map("event_type")
+  userId    String?       @map("user_id")
+  requestId String        @map("request_id")
+  timestamp DateTime      @default(now())
+  metadata  Json
+  ipAddress String?       @map("ip_address")
+  userAgent String?       @map("user_agent")
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@map("audit_logs")
+  @@index([eventType])
+  @@index([userId])
+  @@index([timestamp])
+  @@index([requestId])
+}
+
+model ProxyConfig {
+  id                String   @id @default(cuid())
+  userId            String   @unique @map("user_id")
+  defaultProvider   AIProvider @map("default_provider")
+  enablePIIDetection Boolean  @default(true) @map("enable_pii_detection")
+  enableRuleEngine  Boolean  @default(true) @map("enable_rule_engine")
+  enableAuditLogging Boolean @default(true) @map("enable_audit_logging")
+  rateLimitWindowMs Int      @default(900000) @map("rate_limit_window_ms")
+  rateLimitMaxRequests Int   @default(100) @map("rate_limit_max_requests")
+  providerConfigs   Json     @map("provider_configs")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  @@map("proxy_configs")
+}
+
+model Usage {
+  id              String     @id @default(cuid())
+  userId          String     @map("user_id")
+  provider        AIProvider
+  model           String
+  inputTokens     Int        @map("input_tokens")
+  outputTokens    Int        @map("output_tokens")
+  totalTokens     Int        @map("total_tokens")
+  cost            Decimal?   @db.Decimal(10, 6)
+  processingTimeMs Int       @map("processing_time_ms")
+  piiDetected     Boolean    @map("pii_detected")
+  rulesTriggered  String[]   @map("rules_triggered")
+  timestamp       DateTime   @default(now())
+  requestId       String     @map("request_id")
+
+  @@map("usage")
+  @@index([userId])
+  @@index([provider])
+  @@index([timestamp])
+  @@index([requestId])
+}
+
+enum UserRole {
+  ADMIN
+  USER
+  VIEWER
+}
+
+enum RuleAction {
+  BLOCK
+  ANONYMIZE
+  REDACT
+  WARN
+  ALLOW
+}
+
+enum AuditEventType {
+  PROXY_REQUEST
+  PII_DETECTED
+  RULE_TRIGGERED
+  USER_LOGIN
+  USER_LOGOUT
+  CONFIG_CHANGED
+  ERROR_OCCURRED
+}
+
+enum AIProvider {
+  OPENAI
+  CLAUDE
+  GEMINI
+}

@@ -1,0 +1,37 @@
+# Multi-stage build for frontend
+FROM node:18-alpine AS base
+WORKDIR /app
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 nodeuser
+
+# Dependencies stage
+FROM base AS deps
+COPY package*.json ./
+COPY packages/frontend/package*.json ./packages/frontend/
+COPY packages/shared/package*.json ./packages/shared/
+RUN npm ci
+
+# Build stage
+FROM base AS builder
+COPY package*.json ./
+COPY packages/frontend/package*.json ./packages/frontend/
+COPY packages/shared/package*.json ./packages/shared/
+RUN npm ci
+
+COPY packages/shared ./packages/shared
+COPY packages/frontend ./packages/frontend
+
+RUN npm run build -w shared
+RUN npm run build -w frontend
+
+# Production stage with nginx
+FROM nginx:alpine AS runner
+COPY --from=builder /app/packages/frontend/dist /usr/share/nginx/html
+COPY docker/nginx.conf /etc/nginx/nginx.conf
+
+EXPOSE 80
+
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://localhost/ || exit 1
+
+CMD ["nginx", "-g", "daemon off;"]

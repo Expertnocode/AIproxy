@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  presidio-analyzer:
+    image: mcr.microsoft.com/presidio-analyzer:latest
+    container_name: aiproxy-presidio-analyzer
+    ports:
+      - "5001:3000"
+    environment:
+      - GRPC_PORT=3001
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - aiproxy-network
+
+  presidio-anonymizer:
+    image: mcr.microsoft.com/presidio-anonymizer:latest
+    container_name: aiproxy-presidio-anonymizer
+    ports:
+      - "5002:3000"
+    environment:
+      - GRPC_PORT=3001
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - aiproxy-network
+
+networks:
+  aiproxy-network:
+    external: true

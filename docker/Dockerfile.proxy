@@ -1,0 +1,44 @@
+# Multi-stage build for proxy
+FROM node:18-alpine AS base
+WORKDIR /app
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 nodeuser
+
+# Dependencies stage
+FROM base AS deps
+COPY package*.json ./
+COPY packages/proxy/package*.json ./packages/proxy/
+COPY packages/shared/package*.json ./packages/shared/
+RUN npm ci --only=production
+
+# Build stage
+FROM base AS builder
+COPY package*.json ./
+COPY packages/proxy/package*.json ./packages/proxy/
+COPY packages/shared/package*.json ./packages/shared/
+RUN npm ci
+
+COPY packages/shared ./packages/shared
+COPY packages/proxy ./packages/proxy
+COPY tsconfig.json ./
+
+RUN npm run build -w shared
+RUN npm run build -w proxy
+
+# Production stage
+FROM base AS runner
+ENV NODE_ENV=production
+
+COPY --from=deps --chown=nodeuser:nodejs /app/node_modules ./node_modules
+COPY --from=deps --chown=nodeuser:nodejs /app/packages/proxy/node_modules ./packages/proxy/node_modules
+COPY --from=builder --chown=nodeuser:nodejs /app/packages/proxy/dist ./packages/proxy/dist
+COPY --from=builder --chown=nodeuser:nodejs /app/packages/shared/dist ./packages/shared/dist
+
+USER nodeuser
+
+EXPOSE 3000
+
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD node -e "require('http').get('http://localhost:3000/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"
+
+CMD ["node", "packages/proxy/dist/index.js"]
