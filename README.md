@@ -265,9 +265,29 @@ npm run start:proxy &
 npm run start:frontend
 ```
 
-## 📝 License
+## 📄 License
 
-AIProxy is licensed under the [AGPL v3 License](LICENSE).
+AIProxy is licensed under the **GNU Affero General Public License v3.0** (AGPL v3).
+
+### What this means:
+
+✅ **You CAN:**
+- Use AIProxy for internal business purposes (free)
+- Modify and customize the software
+- Distribute your modifications
+- Use it commercially within your organization
+
+❌ **You MUST:**
+- Keep the source code open when distributing
+- Share any modifications under AGPL v3
+- Include license and copyright notices
+- Provide source code to users of network services
+
+### Commercial License
+
+For commercial licensing without AGPL obligations, contact: **license@aiproxy.dev**
+
+See the [LICENSE](LICENSE) file for the complete license text.
 
 ## 🤝 Contributing
 
