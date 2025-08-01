@@ -285,7 +285,7 @@ AIProxy is licensed under the **GNU Affero General Public License v3.0** (AGPL v
 
 ### Commercial License
 
-For commercial licensing without AGPL obligations, contact: **license@aiproxy.dev**
+For commercial licensing without AGPL obligations, contact: **expertnocode@gmail.com**
 
 See the [LICENSE](LICENSE) file for the complete license text.
 
