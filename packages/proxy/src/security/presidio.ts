@@ -53,25 +53,20 @@ export class PresidioDetector {
       const request: PresidioAnalyzeRequest = {
         text,
         language: 'en',
-        score_threshold: 0.35,
+        score_threshold: 0.8, // Augmenté de 0.35 à 0.8 pour réduire les faux positifs
         entities: [
           'CREDIT_CARD',
-          'CRYPTO',
-          'DATE_TIME',
           'EMAIL_ADDRESS',
-          'IBAN_CODE',
           'IP_ADDRESS',
-          'NRP',
-          'LOCATION',
-          'PERSON',
           'PHONE_NUMBER',
-          'MEDICAL_LICENSE',
-          'URL',
           'US_SSN',
           'US_BANK_NUMBER',
           'US_DRIVER_LICENSE',
           'US_ITIN',
-          'US_PASSPORT'
+          'US_PASSPORT',
+          'URL'
+          // Supprimé: DATE_TIME, PERSON, LOCATION, CRYPTO, IBAN_CODE, NRP, MEDICAL_LICENSE
+          // car ils causent trop de faux positifs sur du texte normal
         ]
       };
 

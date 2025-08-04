@@ -123,11 +123,13 @@ export function ChatPage() {
           hasAnonymization: data.data.hasAnonymization || false,
           provider: settings.provider,
           model: settings.model,
-          tokenUsage: usage ? {
-            promptTokens: usage.promptTokens || usage.prompt_tokens || 0,
-            completionTokens: usage.completionTokens || usage.completion_tokens || 0,
-            totalTokens: usage.totalTokens || usage.total_tokens || 0
-          } : undefined
+          ...(usage && {
+            tokenUsage: {
+              promptTokens: usage.promptTokens || usage.prompt_tokens || 0,
+              completionTokens: usage.completionTokens || usage.completion_tokens || 0,
+              totalTokens: usage.totalTokens || usage.total_tokens || 0
+            }
+          })
         }
 
         setMessages(prev => [...prev, assistantMessage])

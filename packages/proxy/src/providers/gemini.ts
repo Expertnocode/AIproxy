@@ -21,8 +21,8 @@ export class GeminiProvider {
       const model = this.client.getGenerativeModel({ 
         model: request.model,
         generationConfig: {
-          temperature: request.temperature,
-          maxOutputTokens: request.maxTokens
+          ...(request.temperature !== undefined && { temperature: request.temperature }),
+          ...(request.maxTokens !== undefined && { maxOutputTokens: request.maxTokens })
         }
       });
 
@@ -37,8 +37,7 @@ export class GeminiProvider {
       const lastMessage = userMessages[userMessages.length - 1]?.content || '';
 
       const chat = model.startChat({
-        history: chatHistory,
-        systemInstruction: systemMessage || undefined
+        history: chatHistory
       });
 
       const result = await chat.sendMessage(lastMessage);
@@ -53,10 +52,10 @@ export class GeminiProvider {
           },
           finishReason: response.candidates?.[0]?.finishReason || undefined
         }],
-        usage: response.usageMetadata ? {
-          promptTokens: response.usageMetadata.promptTokenCount || 0,
-          completionTokens: response.usageMetadata.candidatesTokenCount || 0,
-          totalTokens: response.usageMetadata.totalTokenCount || 0
+        usage: (response as any).usageMetadata ? {
+          promptTokens: (response as any).usageMetadata.promptTokenCount || 0,
+          completionTokens: (response as any).usageMetadata.candidatesTokenCount || 0,
+          totalTokens: (response as any).usageMetadata.totalTokenCount || 0
         } : undefined,
         model: request.model,
         created: Math.floor(Date.now() / 1000)
@@ -76,8 +75,8 @@ export class GeminiProvider {
       const model = this.client.getGenerativeModel({ 
         model: request.model,
         generationConfig: {
-          temperature: request.temperature,
-          maxOutputTokens: request.maxTokens
+          ...(request.temperature !== undefined && { temperature: request.temperature }),
+          ...(request.maxTokens !== undefined && { maxOutputTokens: request.maxTokens })
         }
       });
 
@@ -92,8 +91,7 @@ export class GeminiProvider {
       const lastMessage = userMessages[userMessages.length - 1]?.content || '';
 
       const chat = model.startChat({
-        history: chatHistory,
-        systemInstruction: systemMessage || undefined
+        history: chatHistory
       });
 
       const result = await chat.sendMessageStream(lastMessage);

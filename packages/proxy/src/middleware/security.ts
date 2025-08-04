@@ -15,10 +15,13 @@ declare global {
   }
 }
 
-// Cache for rules to avoid fetching on every request
+// Cache for rules and config to avoid fetching on every request
 let cachedRules: SecurityRule[] = [];
+let cachedUserConfig: any = null;
 let lastRuleFetch = 0;
+let lastConfigFetch = 0;
 const RULE_CACHE_TTL = 60000; // 1 minute
+const CONFIG_CACHE_TTL = 300000; // 5 minutes
 
 async function fetchUserRules(userId: string): Promise<SecurityRule[]> {
   try {
@@ -39,6 +42,28 @@ async function fetchUserRules(userId: string): Promise<SecurityRule[]> {
       userId
     });
     return [];
+  }
+}
+
+async function fetchUserConfig(userId: string): Promise<any> {
+  try {
+    const backendUrl = process.env.BACKEND_URL || 'http://localhost:3001';
+    const response = await axios.get(`${backendUrl}/api/v1/config`, {
+      headers: {
+        'User-ID': userId // We'll pass the user ID from the JWT
+      }
+    });
+    
+    if (response.data.success) {
+      return response.data.data || null;
+    }
+    return null;
+  } catch (error) {
+    logger.warn('Failed to fetch user config:', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      userId
+    });
+    return null;
   }
 }
 
@@ -75,16 +100,43 @@ export function createSecurityMiddleware() {
         }
       }
 
-      // Fetch and cache user rules
+      // Fetch and cache user rules and config
       let userRules: SecurityRule[] = [];
+      let userConfig: any = null;
+      
       if (userId) {
         const now = Date.now();
+        
+        // Fetch user rules
         if (now - lastRuleFetch > RULE_CACHE_TTL) {
           cachedRules = await fetchUserRules(userId);
           lastRuleFetch = now;
         }
         userRules = cachedRules;
+        
+        // Fetch user config
+        if (now - lastConfigFetch > CONFIG_CACHE_TTL) {
+          cachedUserConfig = await fetchUserConfig(userId);
+          lastConfigFetch = now;
+        }
+        userConfig = cachedUserConfig;
       }
+
+      // Use user configuration if available, otherwise fall back to environment variables
+      const securityConfig = {
+        enablePIIDetection: userConfig?.enablePIIDetection ?? (process.env.ENABLE_PII_DETECTION !== 'false'),
+        enableRuleEngine: userConfig?.enableRuleEngine ?? (process.env.ENABLE_RULE_ENGINE !== 'false'),
+        fallbackToRegex: process.env.FALLBACK_TO_REGEX === 'true'
+      };
+
+      logger.debug('Security configuration applied', {
+        requestId: req.id,
+        userId,
+        enablePIIDetection: securityConfig.enablePIIDetection,
+        enableRuleEngine: securityConfig.enableRuleEngine,
+        rulesCount: userRules.length,
+        configSource: userConfig ? 'database' : 'environment'
+      });
 
       // Create rule engine with user's rules
       const ruleEngine = new SecurityRuleEngine(userRules);
@@ -92,11 +144,7 @@ export function createSecurityMiddleware() {
       const securityProcessor = new SecurityProcessor(
         presidioDetector,
         ruleEngine,
-        {
-          enablePIIDetection: process.env.ENABLE_PII_DETECTION !== 'false',
-          enableRuleEngine: process.env.ENABLE_RULE_ENGINE !== 'false',
-          fallbackToRegex: process.env.FALLBACK_TO_REGEX === 'true'
-        }
+        securityConfig
       );
 
       // Attach security processor to request for use in routes

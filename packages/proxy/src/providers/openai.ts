@@ -8,7 +8,7 @@ export class OpenAIProvider {
   constructor(apiKey: string, baseURL?: string) {
     this.client = new OpenAI({
       apiKey,
-      baseURL
+      ...(baseURL && { baseURL })
     });
   }
 
@@ -24,8 +24,8 @@ export class OpenAIProvider {
       const response = await this.client.chat.completions.create({
         model: request.model,
         messages: request.messages,
-        temperature: request.temperature,
-        max_tokens: request.maxTokens,
+        ...(request.temperature !== undefined && { temperature: request.temperature }),
+        ...(request.maxTokens !== undefined && { max_tokens: request.maxTokens }),
         stream: false
       });
 
@@ -62,8 +62,8 @@ export class OpenAIProvider {
       const stream = await this.client.chat.completions.create({
         model: request.model,
         messages: request.messages,
-        temperature: request.temperature,
-        max_tokens: request.maxTokens,
+        ...(request.temperature !== undefined && { temperature: request.temperature }),
+        ...(request.maxTokens !== undefined && { max_tokens: request.maxTokens }),
         stream: true
       });
 

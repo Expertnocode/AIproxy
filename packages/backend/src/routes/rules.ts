@@ -7,7 +7,7 @@ export const ruleRoutes = Router();
 
 ruleRoutes.use(authenticateToken);
 
-ruleRoutes.get('/', async (req, res, next) => {
+ruleRoutes.get('/', async (req, res, next): Promise<any> => {
   try {
     // Support both authenticated requests and User-ID header (for proxy service)
     let userId: string;
@@ -35,16 +35,17 @@ ruleRoutes.get('/', async (req, res, next) => {
     res.json(createAPIResponse(rules, undefined, req.id));
   } catch (error) {
     next(error);
+    return;
   }
 });
 
-ruleRoutes.get('/:id', requireUser, async (req, res, next) => {
+ruleRoutes.get('/:id', requireUser, async (req, res, next): Promise<any> => {
   try {
     const { id } = req.params;
 
     const rule = await prisma.securityRule.findFirst({
       where: { 
-        id,
+        ...(id && { id }),
         userId: req.user!.id 
       }
     });
@@ -56,10 +57,11 @@ ruleRoutes.get('/:id', requireUser, async (req, res, next) => {
     res.json(createAPIResponse(rule, undefined, req.id));
   } catch (error) {
     next(error);
+    return;
   }
 });
 
-ruleRoutes.post('/', requireUser, async (req, res, next) => {
+ruleRoutes.post('/', requireUser, async (req, res, next): Promise<any> => {
   try {
     const validation = validateRequest(CreateSecurityRuleSchema, req.body);
     if (!validation.success) {
@@ -72,24 +74,30 @@ ruleRoutes.post('/', requireUser, async (req, res, next) => {
 
     const rule = await prisma.securityRule.create({
       data: {
-        ...validation.data,
-        userId: req.user!.id
+        userId: req.user!.id,
+        name: validation.data.name,
+        pattern: validation.data.pattern,
+        action: validation.data.action,
+        ...(validation.data.description && { description: validation.data.description }),
+        ...(validation.data.enabled !== undefined && { enabled: validation.data.enabled }),
+        ...(validation.data.priority !== undefined && { priority: validation.data.priority })
       }
     });
 
     res.status(201).json(createAPIResponse(rule, undefined, req.id));
   } catch (error) {
     next(error);
+    return;
   }
 });
 
-ruleRoutes.put('/:id', requireUser, async (req, res, next) => {
+ruleRoutes.put('/:id', requireUser, async (req, res, next): Promise<any> => {
   try {
     const { id } = req.params;
 
     const existingRule = await prisma.securityRule.findFirst({
       where: { 
-        id,
+        ...(id && { id }),
         userId: req.user!.id 
       }
     });
@@ -107,20 +115,39 @@ ruleRoutes.put('/:id', requireUser, async (req, res, next) => {
       ));
     }
 
+    if (!id) {
+      return res.status(400).json(createAPIResponse(
+        undefined,
+        { code: 'VALIDATION_ERROR', message: 'Rule ID is required' },
+        req.id
+      ));
+    }
+
     const rule = await prisma.securityRule.update({
       where: { id },
-      data: validation.data
+      data: Object.fromEntries(
+        Object.entries(validation.data).filter(([_, value]) => value !== undefined)
+      )
     });
 
     res.json(createAPIResponse(rule, undefined, req.id));
   } catch (error) {
     next(error);
+    return;
   }
 });
 
-ruleRoutes.delete('/:id', requireUser, async (req, res, next) => {
+ruleRoutes.delete('/:id', requireUser, async (req, res, next): Promise<any> => {
   try {
     const { id } = req.params;
+
+    if (!id) {
+      return res.status(400).json(createAPIResponse(
+        undefined,
+        { code: 'VALIDATION_ERROR', message: 'Rule ID is required' },
+        req.id
+      ));
+    }
 
     const rule = await prisma.securityRule.findFirst({
       where: { 
@@ -140,5 +167,6 @@ ruleRoutes.delete('/:id', requireUser, async (req, res, next) => {
     res.json(createAPIResponse({ message: 'Security rule deleted successfully' }, undefined, req.id));
   } catch (error) {
     next(error);
+    return;
   }
 });

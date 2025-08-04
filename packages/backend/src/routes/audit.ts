@@ -7,7 +7,7 @@ export const auditRoutes = Router();
 
 auditRoutes.use(authenticateToken);
 
-auditRoutes.get('/logs', requireUser, async (req, res, next) => {
+auditRoutes.get('/logs', requireUser, async (req, res, next): Promise<any> => {
   try {
     // Convert query string parameters to proper types
     const queryData = {
@@ -21,12 +21,12 @@ auditRoutes.get('/logs', requireUser, async (req, res, next) => {
     if (!validation.success) {
       return res.status(400).json(createAPIResponse(
         undefined,
-        { code: 'VALIDATION_ERROR', message: 'Invalid pagination parameters', details: { errors: validation.errors } },
+        { code: 'VALIDATION_ERROR', message: 'Invalid pagination parameters', details: { errors: 'success' in validation && !validation.success ? validation.errors : [] } },
         req.id
       ));
     }
 
-    const { page, limit, sortBy, sortOrder } = validation.data;
+    const { page = 1, limit = 20, sortBy, sortOrder = 'desc' } = validation.data;
     const skip = (page - 1) * limit;
 
     const where = req.user!.role === 'ADMIN' 
@@ -69,10 +69,11 @@ auditRoutes.get('/logs', requireUser, async (req, res, next) => {
     }, undefined, req.id));
   } catch (error) {
     next(error);
+    return;
   }
 });
 
-auditRoutes.get('/usage', requireUser, async (req, res, next) => {
+auditRoutes.get('/usage', requireUser, async (req, res, next): Promise<any> => {
   try {
     // Convert query string parameters to proper types
     const queryData = {
@@ -86,12 +87,12 @@ auditRoutes.get('/usage', requireUser, async (req, res, next) => {
     if (!validation.success) {
       return res.status(400).json(createAPIResponse(
         undefined,
-        { code: 'VALIDATION_ERROR', message: 'Invalid pagination parameters', details: { errors: validation.errors } },
+        { code: 'VALIDATION_ERROR', message: 'Invalid pagination parameters', details: { errors: 'success' in validation && !validation.success ? validation.errors : [] } },
         req.id
       ));
     }
 
-    const { page, limit, sortBy, sortOrder } = validation.data;
+    const { page = 1, limit = 20, sortBy, sortOrder = 'desc' } = validation.data;
     const skip = (page - 1) * limit;
 
     const where = req.user!.role === 'ADMIN' 
@@ -113,7 +114,7 @@ auditRoutes.get('/usage', requireUser, async (req, res, next) => {
     const totalPages = Math.ceil(total / limit);
 
     res.json(createAPIResponse({
-      data: usage,
+      items: usage,
       pagination: {
         page,
         limit,
@@ -125,10 +126,11 @@ auditRoutes.get('/usage', requireUser, async (req, res, next) => {
     }, undefined, req.id));
   } catch (error) {
     next(error);
+    return;
   }
 });
 
-auditRoutes.get('/analytics/activity', requireUser, async (req, res, next) => {
+auditRoutes.get('/analytics/activity', requireUser, async (req, res, next): Promise<any> => {
   try {
     const userId = req.user!.role === 'ADMIN' ? undefined : req.user!.id;
     const where = userId ? { userId } : {};
@@ -189,10 +191,11 @@ auditRoutes.get('/analytics/activity', requireUser, async (req, res, next) => {
     res.json(createAPIResponse(chartData, undefined, req.id));
   } catch (error) {
     next(error);
+    return;
   }
 });
 
-auditRoutes.get('/analytics/providers', requireUser, async (req, res, next) => {
+auditRoutes.get('/analytics/providers', requireUser, async (req, res, next): Promise<any> => {
   try {
     const userId = req.user!.role === 'ADMIN' ? undefined : req.user!.id;
     const where = userId ? { userId } : {};
@@ -225,10 +228,11 @@ auditRoutes.get('/analytics/providers', requireUser, async (req, res, next) => {
     res.json(createAPIResponse(chartData, undefined, req.id));
   } catch (error) {
     next(error);
+    return;
   }
 });
 
-auditRoutes.get('/analytics/summary', requireUser, async (req, res, next) => {
+auditRoutes.get('/analytics/summary', requireUser, async (req, res, next): Promise<any> => {
   try {
     const userId = req.user!.role === 'ADMIN' ? undefined : req.user!.id;
     const where = userId ? { userId } : {};
@@ -380,6 +384,7 @@ auditRoutes.get('/analytics/summary', requireUser, async (req, res, next) => {
     }, undefined, req.id));
   } catch (error) {
     next(error);
+    return;
   }
 });
 

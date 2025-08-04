@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { createAPIResponse, NotFoundError } from '@aiproxy/shared';
 import { prisma } from '../utils/database';
-import { authenticateToken, requireUser } from '../middleware/auth';
+import { authenticateToken, requireUser, authenticateUserIdHeader } from '../middleware/auth';
 import { z } from 'zod';
 
 const ProxyConfigUpdateSchema = z.object({
@@ -16,9 +16,10 @@ const ProxyConfigUpdateSchema = z.object({
 
 export const configRoutes = Router();
 
-configRoutes.use(authenticateToken);
+// Use User-ID header authentication for internal proxy requests, fallback to token auth
+configRoutes.use(authenticateUserIdHeader);
 
-configRoutes.get('/', requireUser, async (req, res, next) => {
+configRoutes.get('/', requireUser, async (req, res, next): Promise<any> => {
   try {
     let config = await prisma.proxyConfig.findUnique({
       where: { userId: req.user!.id }
@@ -42,10 +43,11 @@ configRoutes.get('/', requireUser, async (req, res, next) => {
     res.json(createAPIResponse(config, undefined, req.id));
   } catch (error) {
     next(error);
+    return;
   }
 });
 
-configRoutes.put('/', requireUser, async (req, res, next) => {
+configRoutes.put('/', requireUser, async (req, res, next): Promise<any> => {
   try {
     const validation = z.object({
       data: ProxyConfigUpdateSchema
@@ -73,30 +75,32 @@ configRoutes.put('/', requireUser, async (req, res, next) => {
       config = await prisma.proxyConfig.create({
         data: {
           userId: req.user!.id,
-          defaultProvider: 'OPENAI',
-          enablePIIDetection: true,
-          enableRuleEngine: true,
-          enableAuditLogging: true,
-          rateLimitWindowMs: 900000,
-          rateLimitMaxRequests: 100,
-          providerConfigs: {},
-          ...updateData
+          defaultProvider: updateData.defaultProvider || 'OPENAI',
+          enablePIIDetection: updateData.enablePIIDetection ?? true,
+          enableRuleEngine: updateData.enableRuleEngine ?? true,
+          enableAuditLogging: updateData.enableAuditLogging ?? true,
+          rateLimitWindowMs: updateData.rateLimitWindowMs ?? 900000,
+          rateLimitMaxRequests: updateData.rateLimitMaxRequests ?? 100,
+          providerConfigs: updateData.providerConfigs ?? {}
         }
       });
     } else {
       config = await prisma.proxyConfig.update({
         where: { userId: req.user!.id },
-        data: updateData
+        data: Object.fromEntries(
+          Object.entries(updateData).filter(([_, value]) => value !== undefined)
+        )
       });
     }
 
     res.json(createAPIResponse(config, undefined, req.id));
   } catch (error) {
     next(error);
+    return;
   }
 });
 
-configRoutes.get('/models', requireUser, async (req, res, next) => {
+configRoutes.get('/models', requireUser, async (req, res, next): Promise<any> => {
   try {
     const models = [
       {
@@ -154,5 +158,6 @@ configRoutes.get('/models', requireUser, async (req, res, next) => {
     res.json(createAPIResponse(models, undefined, req.id));
   } catch (error) {
     next(error);
+    return;
   }
 });

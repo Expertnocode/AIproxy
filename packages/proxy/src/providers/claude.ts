@@ -8,7 +8,7 @@ export class ClaudeProvider {
   constructor(apiKey: string, baseURL?: string) {
     this.client = new Anthropic({
       apiKey,
-      baseURL
+      ...(baseURL && { baseURL })
     });
   }
 
@@ -24,7 +24,7 @@ export class ClaudeProvider {
       const systemMessage = request.messages.find(m => m.role === 'system')?.content || '';
       const userMessages = request.messages.filter(m => m.role !== 'system');
 
-      const response = await this.client.messages.create({
+      const response = await (this.client as any).messages.create({
         model: request.model,
         max_tokens: request.maxTokens || 1024,
         temperature: request.temperature,
@@ -68,7 +68,7 @@ export class ClaudeProvider {
       const systemMessage = request.messages.find(m => m.role === 'system')?.content || '';
       const userMessages = request.messages.filter(m => m.role !== 'system');
 
-      const stream = this.client.messages.stream({
+      const stream = (this.client as any).messages.stream({
         model: request.model,
         max_tokens: request.maxTokens || 1024,
         temperature: request.temperature,

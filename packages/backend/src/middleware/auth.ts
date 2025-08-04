@@ -39,7 +39,11 @@ export async function authenticateToken(
       throw new AuthenticationError('Invalid token');
     }
 
-    req.user = user;
+    req.user = {
+      id: user.id,
+      email: user.email,
+      role: user.role as any // Cast to handle Prisma enum vs shared enum mismatch
+    };
     next();
   } catch (error) {
     if (error instanceof jwt.JsonWebTokenError) {
@@ -69,3 +73,37 @@ export function requireRole(roles: UserRole[]) {
 export const requireAdmin = requireRole([UserRole.ADMIN]);
 export const requireUser = requireRole([UserRole.ADMIN, UserRole.USER]);
 export const requireViewer = requireRole([UserRole.ADMIN, UserRole.USER, UserRole.VIEWER]);
+
+// Special middleware for internal proxy requests using User-ID header
+export async function authenticateUserIdHeader(
+  req: Request, 
+  res: Response, 
+  next: NextFunction
+): Promise<void> {
+  try {
+    const userId = req.headers['user-id'] as string;
+    
+    if (!userId) {
+      // Fall back to normal token authentication
+      return authenticateToken(req, res, next);
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, email: true, role: true }
+    });
+
+    if (!user) {
+      throw new AuthenticationError('Invalid user ID');
+    }
+
+    req.user = {
+      id: user.id,
+      email: user.email,
+      role: user.role as any // Cast to handle Prisma enum vs shared enum mismatch
+    };
+    next();
+  } catch (error) {
+    next(error);
+  }
+}

@@ -7,7 +7,7 @@ import { authenticateToken } from '../middleware/auth';
 
 export const authRoutes = Router();
 
-authRoutes.post('/register', async (req, res, next) => {
+authRoutes.post('/register', async (req, res, next): Promise<any> => {
   try {
     const validation = validateRequest(CreateUserSchema, req.body);
     if (!validation.success) {
@@ -35,7 +35,7 @@ authRoutes.post('/register', async (req, res, next) => {
         email,
         name,
         passwordHash,
-        role
+        ...(role && { role })
       },
       select: {
         id: true,
@@ -72,10 +72,11 @@ authRoutes.post('/register', async (req, res, next) => {
 
   } catch (error) {
     next(error);
+    return;
   }
 });
 
-authRoutes.post('/login', async (req, res, next) => {
+authRoutes.post('/login', async (req, res, next): Promise<any> => {
   try {
     const validation = validateRequest(LoginSchema, req.body);
     if (!validation.success) {
@@ -127,10 +128,11 @@ authRoutes.post('/login', async (req, res, next) => {
 
   } catch (error) {
     next(error);
+    return;
   }
 });
 
-authRoutes.post('/logout', authenticateToken, async (req, res, next) => {
+authRoutes.post('/logout', authenticateToken, async (req, res, next): Promise<any> => {
   try {
     const authHeader = req.headers.authorization;
     const token = authHeader?.split(' ')[1];
@@ -147,10 +149,11 @@ authRoutes.post('/logout', authenticateToken, async (req, res, next) => {
     res.json(createAPIResponse({ message: 'Logged out successfully' }, undefined, req.id));
   } catch (error) {
     next(error);
+    return;
   }
 });
 
-authRoutes.get('/me', authenticateToken, async (req, res, next) => {
+authRoutes.get('/me', authenticateToken, async (req, res, next): Promise<any> => {
   try {
     const user = await prisma.user.findUnique({
       where: { id: req.user!.id },
@@ -168,5 +171,6 @@ authRoutes.get('/me', authenticateToken, async (req, res, next) => {
     res.json(createAPIResponse(user, undefined, req.id));
   } catch (error) {
     next(error);
+    return;
   }
 });

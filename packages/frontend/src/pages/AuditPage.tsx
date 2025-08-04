@@ -23,6 +23,7 @@ export function AuditPage() {
     queryFn: () => auditService.getUsage({ page, limit })
   })
 
+
   const totalPages = usage ? Math.ceil(usage.pagination.total / limit) : 0
 
   const getProviderIcon = (provider: string) => {
@@ -98,9 +99,9 @@ export function AuditPage() {
                 </div>
               ))}
             </div>
-          ) : usage?.data?.length ? (
+          ) : usage?.items?.length ? (
             <div className="space-y-4">
-              {usage.data.map((record: any) => (
+              {usage.items.map((record: any) => (
                 <div 
                   key={record.id} 
                   className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"

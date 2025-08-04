@@ -27,11 +27,12 @@ proxyRoutes.post('/chat', async (req, res, next) => {
   try {
     const validation = validateRequest(ProxyRequestSchema, req.body);
     if (!validation.success) {
-      return res.status(400).json(createAPIResponse(
+      res.status(400).json(createAPIResponse(
         undefined,
         { code: 'VALIDATION_ERROR', message: 'Invalid request format', details: { errors: validation.errors } },
         req.id
       ));
+      return;
     }
 
     const request = validation.data;
@@ -49,12 +50,12 @@ proxyRoutes.post('/chat', async (req, res, next) => {
     });
 
     // Process messages through security middleware
-    let processedMessages = request.messages;
+    let processedMessages = request.messages as { role: 'system' | 'user' | 'assistant'; content: string; }[];
     let processingResults: any[] = [];
 
     if (req.securityProcessor) {
       const securityResult = await processProxyRequest(req.securityProcessor, request.messages);
-      processedMessages = securityResult.processedMessages;
+      processedMessages = securityResult.processedMessages as { role: 'system' | 'user' | 'assistant'; content: string; }[];
       processingResults = securityResult.processingResults;
 
       logger.info('Security processing completed', {

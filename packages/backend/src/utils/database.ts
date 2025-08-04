@@ -10,24 +10,24 @@ export const prisma = globalThis.__prisma || new PrismaClient({
     { level: 'query', emit: 'event' },
     { level: 'error', emit: 'event' },
     { level: 'warn', emit: 'event' },
-  ],
+  ] as any,
 });
 
 if (process.env.NODE_ENV === 'development') {
   globalThis.__prisma = prisma;
 }
 
-prisma.$on('query', (e) => {
+(prisma as any).$on('query', (e: any) => {
   logger.debug('Query: ' + e.query);
   logger.debug('Params: ' + e.params);
   logger.debug('Duration: ' + e.duration + 'ms');
 });
 
-prisma.$on('error', (e) => {
+(prisma as any).$on('error', (e: any) => {
   logger.error('Database error:', e);
 });
 
-prisma.$on('warn', (e) => {
+(prisma as any).$on('warn', (e: any) => {
   logger.warn('Database warning:', e);
 });
 

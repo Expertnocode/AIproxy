@@ -7,7 +7,7 @@ export const userRoutes = Router();
 
 userRoutes.use(authenticateToken);
 
-userRoutes.get('/', requireAdmin, async (req, res, next) => {
+userRoutes.get('/', requireAdmin, async (req, res, next): Promise<any> => {
   try {
     const users = await prisma.user.findMany({
       select: {
@@ -25,10 +25,11 @@ userRoutes.get('/', requireAdmin, async (req, res, next) => {
     res.json(createAPIResponse(users, undefined, req.id));
   } catch (error) {
     next(error);
+    return;
   }
 });
 
-userRoutes.get('/:id', requireUser, async (req, res, next) => {
+userRoutes.get('/:id', requireUser, async (req, res, next): Promise<any> => {
   try {
     const { id } = req.params;
 
@@ -36,6 +37,14 @@ userRoutes.get('/:id', requireUser, async (req, res, next) => {
       return res.status(403).json(createAPIResponse(
         undefined,
         { code: 'AUTHORIZATION_ERROR', message: 'Insufficient permissions' },
+        req.id
+      ));
+    }
+
+    if (!id) {
+      return res.status(400).json(createAPIResponse(
+        undefined,
+        { code: 'VALIDATION_ERROR', message: 'User ID is required' },
         req.id
       ));
     }
@@ -60,10 +69,11 @@ userRoutes.get('/:id', requireUser, async (req, res, next) => {
     res.json(createAPIResponse(user, undefined, req.id));
   } catch (error) {
     next(error);
+    return;
   }
 });
 
-userRoutes.put('/:id', requireUser, async (req, res, next) => {
+userRoutes.put('/:id', requireUser, async (req, res, next): Promise<any> => {
   try {
     const { id } = req.params;
 
@@ -94,9 +104,19 @@ userRoutes.put('/:id', requireUser, async (req, res, next) => {
       ));
     }
 
+    if (!id) {
+      return res.status(400).json(createAPIResponse(
+        undefined,
+        { code: 'VALIDATION_ERROR', message: 'User ID is required' },
+        req.id
+      ));
+    }
+
     const user = await prisma.user.update({
       where: { id },
-      data: updateData,
+      data: Object.fromEntries(
+        Object.entries(updateData).filter(([_, value]) => value !== undefined)
+      ),
       select: {
         id: true,
         email: true,
@@ -111,12 +131,21 @@ userRoutes.put('/:id', requireUser, async (req, res, next) => {
     res.json(createAPIResponse(user, undefined, req.id));
   } catch (error) {
     next(error);
+    return;
   }
 });
 
-userRoutes.delete('/:id', requireAdmin, async (req, res, next) => {
+userRoutes.delete('/:id', requireAdmin, async (req, res, next): Promise<any> => {
   try {
     const { id } = req.params;
+
+    if (!id) {
+      return res.status(400).json(createAPIResponse(
+        undefined,
+        { code: 'VALIDATION_ERROR', message: 'User ID is required' },
+        req.id
+      ));
+    }
 
     const user = await prisma.user.findUnique({
       where: { id }
@@ -133,5 +162,6 @@ userRoutes.delete('/:id', requireAdmin, async (req, res, next) => {
     res.json(createAPIResponse({ message: 'User deleted successfully' }, undefined, req.id));
   } catch (error) {
     next(error);
+    return;
   }
 });

@@ -38,21 +38,17 @@ interface ChatResponse {
   piiDetected?: boolean;
 }
 
-proxyRoutes.post('/chat', requireUser, async (req, res, next) => {
+proxyRoutes.post('/chat', requireUser, async (req, res, next): Promise<any> => {
   try {
     const chatRequest: ChatRequest = req.body;
     const userId = req.user!.id;
 
     // Forward request to proxy service
     const token = req.headers.authorization;
-    const proxyResponse = await axios.post<{
-      success: boolean;
-      data: ChatResponse;
-      error?: any;
-    }>('http://localhost:3000/api/v1/proxy/chat', chatRequest, {
+    const proxyResponse = await axios.post('http://localhost:3000/api/v1/proxy/chat', chatRequest, {
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': token,
+        ...(token && { 'Authorization': token }),
         'User-ID': userId // Pass user ID for rule fetching
       }
     });
@@ -99,7 +95,7 @@ proxyRoutes.post('/chat', requireUser, async (req, res, next) => {
     const promptTokens = usage?.promptTokens || usage?.prompt_tokens || 0;
     const completionTokens = usage?.completionTokens || usage?.completion_tokens || 0;
     
-    const modelCost = costPerToken[chatRequest.provider]?.[chatRequest.model] || 0.000001;
+    const modelCost = (costPerToken as any)[chatRequest.provider]?.[chatRequest.model] || 0.000001;
     const cost = totalTokens * modelCost;
 
     // Save usage to database
@@ -145,11 +141,12 @@ proxyRoutes.post('/chat', requireUser, async (req, res, next) => {
   } catch (error) {
     logger.error('Proxy chat error', { error, userId: req.user?.id });
     next(error);
+    return;
   }
 });
 
 // Health check endpoint for proxy
-proxyRoutes.get('/health', async (req, res, next) => {
+proxyRoutes.get('/health', async (req, res, next): Promise<any> => {
   try {
     const proxyResponse = await axios.get('http://localhost:3000/health', {
       timeout: 5000

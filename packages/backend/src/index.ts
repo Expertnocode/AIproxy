@@ -41,7 +41,7 @@ validateEnv(process.env, [
 ]);
 
 const app = express();
-const port = process.env.PORT || 3001;
+const port = parseInt(process.env.PORT || '3001', 10);
 
 app.use(helmet());
 app.use(cors({
@@ -83,7 +83,7 @@ app.use('*', (req, res) => {
 
 app.use(errorHandler);
 
-const server = app.listen(port, () => {
+const server = app.listen(port, '0.0.0.0', () => {
   logger.info(`AIProxy Backend running on port ${port}`);
 });
 
