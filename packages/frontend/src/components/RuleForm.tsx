@@ -131,9 +131,9 @@ export function RuleForm({ rule, onSubmit, onCancel, isLoading }: RuleFormProps)
                   <div key={index} className="p-2 border rounded-md">
                     <div className="flex justify-between items-start">
                       <div className="flex-1">
-                        <p className="font-medium text-gray-900">{preset.name}</p>
-                        <p className="text-xs text-gray-500">{preset.description}</p>
-                        <code className="block mt-1 text-xs bg-gray-100 p-1 rounded">
+                        <p className="font-medium text-gray-900 dark:text-gray-100">{preset.name}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">{preset.description}</p>
+                        <code className="block mt-1 text-xs bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 p-1 rounded">
                           {preset.pattern}
                         </code>
                       </div>
@@ -203,7 +203,7 @@ export function RuleForm({ rule, onSubmit, onCancel, isLoading }: RuleFormProps)
               checked={formData.enabled}
               onChange={handleInputChange}
             />
-            <label htmlFor="enabled" className="ml-2 block text-sm text-gray-900">
+            <label htmlFor="enabled" className="ml-2 block text-sm text-gray-900 dark:text-gray-100">
               Enable this rule
             </label>
           </div>
