@@ -1,10 +1,11 @@
 import React, { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Save, Settings, Zap, Shield, AlertCircle } from 'lucide-react'
+import { Save, Settings, Zap, Shield, AlertCircle, Code, Copy, CheckCircle } from 'lucide-react'
 import { configService } from '../services/config'
 
 export function ConfigPage() {
   const [hasChanges, setHasChanges] = useState(false)
+  const [copiedEndpoint, setCopiedEndpoint] = useState<string | null>(null)
   const queryClient = useQueryClient()
 
   const { data: config, isLoading } = useQuery({
@@ -61,6 +62,39 @@ export function ConfigPage() {
     e.preventDefault()
     updateMutation.mutate(formData)
   }
+
+  const handleCopyEndpoint = async (endpoint: string) => {
+    try {
+      await navigator.clipboard.writeText(endpoint)
+      setCopiedEndpoint(endpoint)
+      setTimeout(() => setCopiedEndpoint(null), 2000)
+    } catch (err) {
+      console.error('Failed to copy endpoint:', err)
+    }
+  }
+
+  const apiEndpoints = [
+    {
+      title: 'Chat Completion',
+      endpoint: 'http://localhost:3000/api/v1/proxy/chat',
+      method: 'POST',
+      description: 'Send chat messages through the secure proxy with PII detection and security rules',
+      example: `{
+  "provider": "OPENAI",
+  "model": "gpt-3.5-turbo",
+  "messages": [
+    {"role": "user", "content": "Hello, world!"}
+  ]
+}`
+    },
+    {
+      title: 'Available Models',
+      endpoint: 'http://localhost:3000/api/v1/proxy/models',
+      method: 'GET',
+      description: 'Get list of available AI models from all configured providers',
+      example: null
+    }
+  ]
 
   if (isLoading) {
     return (
@@ -139,6 +173,63 @@ export function ConfigPage() {
                 Default provider for AI requests when not specified
               </p>
             </div>
+          </div>
+        </div>
+
+        {/* Available Models */}
+        <div className="card">
+          <div className="card-header">
+            <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">Available Models</h3>
+          </div>
+          <div className="card-content">
+            {models?.length ? (
+              <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 md:rounded-lg">
+                <table className="min-w-full divide-y divide-gray-300 dark:divide-gray-600">
+                  <thead className="bg-gray-50 dark:bg-gray-800">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                        Model
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                        Provider
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                        Context Length
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                        Cost (per 1K tokens)
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
+                    {models.map((model) => (
+                      <tr key={model.id}>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">
+                          {model.name}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                          {model.provider}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                          {model.contextLength.toLocaleString()}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                          ${model.inputCostPer1kTokens.toFixed(4)} / ${model.outputCostPer1kTokens.toFixed(4)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <AlertCircle className="mx-auto h-12 w-12 text-gray-400" />
+                <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-gray-100">No models available</h3>
+                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                  Configure your AI provider API keys to see available models.
+                </p>
+              </div>
+            )}
           </div>
         </div>
 
@@ -268,60 +359,95 @@ export function ConfigPage() {
           </div>
         </div>
 
-        {/* Available Models */}
+        {/* API Endpoints */}
         <div className="card">
           <div className="card-header">
-            <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">Available Models</h3>
+            <div className="flex items-center">
+              <Code className="h-5 w-5 text-gray-400 mr-2" />
+              <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">API Endpoints</h3>
+            </div>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+              Use these endpoints to integrate with your applications and bots
+            </p>
           </div>
-          <div className="card-content">
-            {models?.length ? (
-              <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 md:rounded-lg">
-                <table className="min-w-full divide-y divide-gray-300 dark:divide-gray-600">
-                  <thead className="bg-gray-50 dark:bg-gray-800">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                        Model
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                        Provider
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                        Context Length
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                        Cost (per 1K tokens)
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
-                    {models.map((model) => (
-                      <tr key={model.id}>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">
-                          {model.name}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                          {model.provider}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                          {model.contextLength.toLocaleString()}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                          ${model.inputCostPer1kTokens.toFixed(4)} / ${model.outputCostPer1kTokens.toFixed(4)}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <div className="text-center py-8">
-                <AlertCircle className="mx-auto h-12 w-12 text-gray-400" />
-                <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-gray-100">No models available</h3>
-                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                  Configure your AI provider API keys to see available models.
+          <div className="card-content space-y-6">
+            {apiEndpoints.map((api, index) => (
+              <div key={index} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <div>
+                    <h4 className="text-lg font-medium text-gray-900 dark:text-gray-100">{api.title}</h4>
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                      {api.method}
+                    </span>
+                  </div>
+                </div>
+                
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                  {api.description}
                 </p>
+                
+                <div className="bg-gray-50 dark:bg-gray-800 rounded-md p-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Endpoint</span>
+                    <button
+                      onClick={() => handleCopyEndpoint(api.endpoint)}
+                      className="inline-flex items-center px-2 py-1 text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                    >
+                      {copiedEndpoint === api.endpoint ? (
+                        <>
+                          <CheckCircle className="h-3 w-3 mr-1" />
+                          Copied!
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="h-3 w-3 mr-1" />
+                          Copy
+                        </>
+                      )}
+                    </button>
+                  </div>
+                  <code className="text-sm text-gray-900 dark:text-gray-100 font-mono break-all">
+                    {api.endpoint}
+                  </code>
+                </div>
+                
+                {api.example && (
+                  <div className="mt-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Example Request Body</span>
+                      <button
+                        onClick={() => handleCopyEndpoint(api.example!)}
+                        className="inline-flex items-center px-2 py-1 text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                      >
+                        {copiedEndpoint === api.example ? (
+                          <>
+                            <CheckCircle className="h-3 w-3 mr-1" />
+                            Copied!
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="h-3 w-3 mr-1" />
+                            Copy
+                          </>
+                        )}
+                      </button>
+                    </div>
+                    <pre className="bg-gray-900 text-gray-100 dark:bg-gray-800 p-3 rounded-md text-sm overflow-x-auto">
+                      <code>{api.example}</code>
+                    </pre>
+                  </div>
+                )}
+                
+                <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-md">
+                  <p className="text-sm text-blue-800 dark:text-blue-200">
+                    <strong>Authentication:</strong> Include your JWT token in the Authorization header: 
+                    <code className="ml-1 text-xs bg-blue-100 dark:bg-blue-800 px-1 py-0.5 rounded">
+                      Bearer YOUR_TOKEN_HERE
+                    </code>
+                  </p>
+                </div>
               </div>
-            )}
+            ))}
           </div>
         </div>
       </form>

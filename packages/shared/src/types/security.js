@@ -52,4 +52,3 @@ exports.UpdateSecurityRuleSchema = zod_1.z.object({
     enabled: zod_1.z.boolean().optional(),
     priority: zod_1.z.number().int().optional()
 });
-//# sourceMappingURL=security.js.map

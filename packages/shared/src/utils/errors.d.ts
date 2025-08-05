@@ -28,4 +28,3 @@ export declare class PIIDetectionError extends APIError {
 export declare class AIProviderError extends APIError {
     constructor(provider: string, message: string);
 }
-//# sourceMappingURL=errors.d.ts.map

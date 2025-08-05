@@ -156,4 +156,3 @@ export interface ProxyConfig {
         };
     };
 }
-//# sourceMappingURL=proxy.d.ts.map

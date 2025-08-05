@@ -48,4 +48,3 @@ export interface PaginatedResponse<T> {
         hasPrev: boolean;
     };
 }
-//# sourceMappingURL=api.d.ts.map

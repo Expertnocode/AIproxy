@@ -1,4 +1,21 @@
 "use strict";
+/**
+ * AIProxy - Secure AI Gateway for Enterprises
+ * Copyright (C) 2025 Expertnocode
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
+ */
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
     var desc = Object.getOwnPropertyDescriptor(m, k);
@@ -27,4 +44,3 @@ __exportStar(require("./types/audit"), exports);
 // Utilities
 __exportStar(require("./utils/validation"), exports);
 __exportStar(require("./utils/errors"), exports);
-//# sourceMappingURL=index.js.map

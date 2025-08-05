@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import axios from 'axios';
+import jwt from 'jsonwebtoken';
 import { SecurityProcessor } from '../security/processor';
 import { PresidioDetector } from '../security/presidio';
 import { SecurityRuleEngine } from '../security/ruleEngine';
@@ -16,20 +17,46 @@ declare global {
 }
 
 // Cache for rules and config to avoid fetching on every request
-let cachedRules: SecurityRule[] = [];
-let cachedUserConfig: any = null;
-let lastRuleFetch = 0;
-let lastConfigFetch = 0;
+interface UserRuleCache {
+  rules: SecurityRule[];
+  lastFetch: number;
+}
+
+interface UserConfigCache {
+  config: any;
+  lastFetch: number;
+}
+
+const ruleCache = new Map<string, UserRuleCache>();
+const configCache = new Map<string, UserConfigCache>();
 const RULE_CACHE_TTL = 60000; // 1 minute
 const CONFIG_CACHE_TTL = 300000; // 5 minutes
 
-async function fetchUserRules(userId: string): Promise<SecurityRule[]> {
+async function fetchUserRules(userId: string, authToken?: string): Promise<SecurityRule[]> {
   try {
     const backendUrl = process.env.BACKEND_URL || 'http://localhost:3001';
-    const response = await axios.get(`${backendUrl}/api/v1/rules`, {
-      headers: {
-        'User-ID': userId // We'll pass the user ID from the JWT
-      }
+    const headers: Record<string, string> = {
+      'User-ID': userId
+    };
+    
+    // Add JWT token if available for proper authentication
+    if (authToken) {
+      headers['Authorization'] = `Bearer ${authToken}`;
+    }
+    
+    logger.info('Fetching user rules from backend', {
+      userId,
+      backendUrl,
+      hasAuthToken: !!authToken
+    });
+    
+    const response = await axios.get(`${backendUrl}/api/v1/rules`, { headers });
+    
+    logger.info('Backend rules response', {
+      userId,
+      success: response.data.success,
+      rulesCount: response.data.data?.length || 0,
+      rules: response.data.data
     });
     
     if (response.data.success) {
@@ -37,22 +64,28 @@ async function fetchUserRules(userId: string): Promise<SecurityRule[]> {
     }
     return [];
   } catch (error) {
-    logger.warn('Failed to fetch user rules:', {
+    logger.error('Failed to fetch user rules:', {
       error: error instanceof Error ? error.message : 'Unknown error',
-      userId
+      userId,
+      stack: error instanceof Error ? error.stack : undefined
     });
     return [];
   }
 }
 
-async function fetchUserConfig(userId: string): Promise<any> {
+async function fetchUserConfig(userId: string, authToken?: string): Promise<any> {
   try {
     const backendUrl = process.env.BACKEND_URL || 'http://localhost:3001';
-    const response = await axios.get(`${backendUrl}/api/v1/config`, {
-      headers: {
-        'User-ID': userId // We'll pass the user ID from the JWT
-      }
-    });
+    const headers: Record<string, string> = {
+      'User-ID': userId
+    };
+    
+    // Add JWT token if available for proper authentication
+    if (authToken) {
+      headers['Authorization'] = `Bearer ${authToken}`;
+    }
+    
+    const response = await axios.get(`${backendUrl}/api/v1/config`, { headers });
     
     if (response.data.success) {
       return response.data.data || null;
@@ -73,25 +106,27 @@ export function createSecurityMiddleware() {
   return async (req: Request, res: Response, next: NextFunction) => {
     try {
       // Skip security processing for non-proxy requests
-      if (!req.url.includes('/proxy/chat')) {
+      if (!req.url.startsWith('/api/v1/proxy')) {
         return next();
       }
 
-      logger.debug('Security middleware processing request', {
+      logger.info('Security middleware processing request', {
         requestId: req.id,
         url: req.url,
-        method: req.method
+        method: req.method,
+        hasAuthHeader: !!req.headers.authorization
       });
 
-      // Extract user ID from JWT token
+      // Extract user ID and token from JWT
       const authHeader = req.headers.authorization;
       let userId: string | null = null;
+      let authToken: string | null = null;
       
       if (authHeader?.startsWith('Bearer ')) {
         try {
-          const token = authHeader.split(' ')[1];
+          authToken = authHeader.split(' ')[1];
           const jwt = require('jsonwebtoken');
-          const decoded = jwt.verify(token, process.env.JWT_SECRET!) as { userId: string };
+          const decoded = jwt.verify(authToken, process.env.JWT_SECRET!) as { userId: string };
           userId = decoded.userId;
         } catch (error) {
           logger.warn('Failed to decode JWT for security rules:', {
@@ -100,26 +135,43 @@ export function createSecurityMiddleware() {
         }
       }
 
-      // Fetch and cache user rules and config
+      // Fetch and cache user rules and config per user
       let userRules: SecurityRule[] = [];
       let userConfig: any = null;
       
       if (userId) {
         const now = Date.now();
         
-        // Fetch user rules
-        if (now - lastRuleFetch > RULE_CACHE_TTL) {
-          cachedRules = await fetchUserRules(userId);
-          lastRuleFetch = now;
+        // Fetch user rules with per-user caching
+        const cachedRuleData = ruleCache.get(userId);
+        if (!cachedRuleData || (now - cachedRuleData.lastFetch) > RULE_CACHE_TTL) {
+          const rules = await fetchUserRules(userId, authToken || undefined);
+          ruleCache.set(userId, { rules, lastFetch: now });
+          userRules = rules;
+          
+          logger.info('User rules fetched and cached', {
+            userId,
+            ruleCount: rules.length,
+            cached: !cachedRuleData,
+            rules: rules.map(r => ({ id: r.id, name: r.name, action: r.action, enabled: r.enabled }))
+          });
+        } else {
+          userRules = cachedRuleData.rules;
+          logger.debug('User rules retrieved from cache', {
+            userId,
+            ruleCount: userRules.length
+          });
         }
-        userRules = cachedRules;
         
-        // Fetch user config
-        if (now - lastConfigFetch > CONFIG_CACHE_TTL) {
-          cachedUserConfig = await fetchUserConfig(userId);
-          lastConfigFetch = now;
+        // Fetch user config with per-user caching
+        const cachedConfigData = configCache.get(userId);
+        if (!cachedConfigData || (now - cachedConfigData.lastFetch) > CONFIG_CACHE_TTL) {
+          const config = await fetchUserConfig(userId, authToken || undefined);
+          configCache.set(userId, { config, lastFetch: now });
+          userConfig = config;
+        } else {
+          userConfig = cachedConfigData.config;
         }
-        userConfig = cachedUserConfig;
       }
 
       // Use user configuration if available, otherwise fall back to environment variables
@@ -129,13 +181,14 @@ export function createSecurityMiddleware() {
         fallbackToRegex: process.env.FALLBACK_TO_REGEX === 'true'
       };
 
-      logger.debug('Security configuration applied', {
+      logger.info('Security configuration applied', {
         requestId: req.id,
         userId,
         enablePIIDetection: securityConfig.enablePIIDetection,
         enableRuleEngine: securityConfig.enableRuleEngine,
         rulesCount: userRules.length,
-        configSource: userConfig ? 'database' : 'environment'
+        configSource: userConfig ? 'database' : 'environment',
+        securityProcessorAttached: true
       });
 
       // Create rule engine with user's rules
@@ -173,6 +226,12 @@ export async function processProxyRequest(
 
   for (const message of messages) {
     try {
+      logger.info('Processing message through security', {
+        role: message.role,
+        contentLength: message.content.length,
+        contentPreview: message.content.substring(0, 100)
+      });
+
       const result = await securityProcessor.processText(message.content);
       
       processedMessages.push({
@@ -182,11 +241,14 @@ export async function processProxyRequest(
       
       processingResults.push(result);
       
-      logger.debug('Message processed by security', {
+      logger.info('Message processed by security', {
         originalLength: message.content.length,
         processedLength: result.processedText.length,
         piiDetected: result.matches.length > 0,
-        rulesApplied: result.appliedRules.length
+        rulesApplied: result.appliedRules.length,
+        textChanged: message.content !== result.processedText,
+        appliedRules: result.appliedRules,
+        matches: result.matches.map(m => ({ type: m.entityType, text: m.text, start: m.start, end: m.end }))
       });
     } catch (error) {
       logger.error('Failed to process message for security:', {

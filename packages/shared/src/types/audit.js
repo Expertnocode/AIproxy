@@ -30,4 +30,3 @@ exports.CreateAuditLogSchema = zod_1.z.object({
     ipAddress: zod_1.z.string().ip().optional(),
     userAgent: zod_1.z.string().optional()
 });
-//# sourceMappingURL=audit.js.map

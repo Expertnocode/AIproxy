@@ -34,6 +34,9 @@ export class SecurityRuleEngine {
       ruleCount: this.rules.length
     });
 
+    // Process all rules to collect complete violation information
+    let shouldBlock = false;
+    
     for (const rule of this.rules) {
       try {
         const matches = this.evaluateRule(rule, text, piiMatches);
@@ -45,7 +48,8 @@ export class SecurityRuleEngine {
             ruleId: rule.id,
             ruleName: rule.name,
             action: rule.action,
-            matchCount: matches.length
+            matchCount: matches.length,
+            matches: matches.map(m => ({ text: m[0], index: m.index }))
           });
 
           // Apply the most restrictive action
@@ -54,9 +58,9 @@ export class SecurityRuleEngine {
           }
 
           if (rule.action === RuleAction.BLOCK) {
-            result.blocked = true;
+            shouldBlock = true;
             result.warnings.push(`Blocked by rule: ${rule.name}`);
-            break; // Stop processing on block
+            // Continue processing to collect all violations
           } else if (rule.action === RuleAction.WARN) {
             result.warnings.push(`Warning from rule: ${rule.name}`);
           }
@@ -69,6 +73,9 @@ export class SecurityRuleEngine {
         });
       }
     }
+    
+    // Set blocked status after processing all rules
+    result.blocked = shouldBlock;
 
     logger.debug('Security rule evaluation completed', {
       finalAction: result.action,

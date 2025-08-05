@@ -2,9 +2,6 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AIProviderError = exports.PIIDetectionError = exports.RateLimitError = exports.ConflictError = exports.NotFoundError = exports.AuthorizationError = exports.AuthenticationError = exports.ValidationError = exports.APIError = void 0;
 class APIError extends Error {
-    code;
-    statusCode;
-    details;
     constructor(message, code, statusCode = 500, details) {
         super(message);
         this.name = 'APIError';
@@ -70,4 +67,3 @@ class AIProviderError extends APIError {
     }
 }
 exports.AIProviderError = AIProviderError;
-//# sourceMappingURL=errors.js.map

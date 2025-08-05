@@ -8,4 +8,3 @@ exports.PaginationSchema = zod_1.z.object({
     sortBy: zod_1.z.string().optional(),
     sortOrder: zod_1.z.enum(['asc', 'desc']).default('desc')
 });
-//# sourceMappingURL=api.js.map

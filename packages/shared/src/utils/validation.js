@@ -36,4 +36,3 @@ const validateEnv = (envVars, required) => {
     }
 };
 exports.validateEnv = validateEnv;
-//# sourceMappingURL=validation.js.map

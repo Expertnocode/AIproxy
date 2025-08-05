@@ -25,4 +25,3 @@ export declare function createAPIResponse<T>(data?: T, error?: {
     };
 };
 export declare const validateEnv: (envVars: Record<string, string | undefined>, required: string[]) => void;
-//# sourceMappingURL=validation.d.ts.map

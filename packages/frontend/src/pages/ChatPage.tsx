@@ -92,7 +92,7 @@ export function ChatPage() {
 
     try {
       const token = localStorage.getItem('token')
-      const response = await fetch('http://localhost:3001/api/v1/proxy/chat', {
+      const response = await fetch('http://localhost:3000/api/v1/proxy/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

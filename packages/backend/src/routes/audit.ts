@@ -2,12 +2,139 @@ import { Router } from 'express';
 import { PaginationSchema, validateRequest, createAPIResponse } from '@aiproxy/shared';
 import { prisma } from '../utils/database';
 import { authenticateToken, requireUser, requireAdmin } from '../middleware/auth';
+import { z } from 'zod';
+
+const CreateAuditLogSchema = z.object({
+  eventType: z.enum(['PROXY_REQUEST', 'PII_DETECTED', 'RULE_TRIGGERED', 'USER_LOGIN', 'USER_LOGOUT', 'CONFIG_CHANGED', 'ERROR_OCCURRED']),
+  requestId: z.string(),
+  metadata: z.record(z.any()).optional(),
+  ipAddress: z.string().optional(),
+  userAgent: z.string().optional()
+});
+
+const CreateUsageSchema = z.object({
+  provider: z.enum(['OPENAI', 'CLAUDE', 'GEMINI']),
+  model: z.string(),
+  inputTokens: z.number().int().min(0),
+  outputTokens: z.number().int().min(0),
+  totalTokens: z.number().int().min(0),
+  cost: z.number().min(0).optional(),
+  processingTimeMs: z.number().int().min(0),
+  piiDetected: z.boolean().optional(),
+  rulesTriggered: z.array(z.string()).optional(),
+  requestId: z.string()
+});
 
 export const auditRoutes = Router();
 
-auditRoutes.use(authenticateToken);
+// Apply conditional authentication - allows both JWT and User-ID header
+auditRoutes.use((req, res, next) => {
+  // If User-ID header is present (proxy request), skip JWT authentication
+  if (req.headers['user-id']) {
+    return next();
+  }
+  // Otherwise, require JWT authentication (frontend request)
+  return authenticateToken(req, res, next);
+});
 
-auditRoutes.get('/logs', requireUser, async (req, res, next): Promise<any> => {
+// Create audit log (for proxy service)
+auditRoutes.post('/logs', async (req, res, next): Promise<any> => {
+  try {
+    const validation = validateRequest(CreateAuditLogSchema, req.body);
+    if (!validation.success) {
+      return res.status(400).json(createAPIResponse(
+        undefined,
+        { code: 'VALIDATION_ERROR', message: 'Invalid audit log data', details: { errors: validation.errors } },
+        req.id
+      ));
+    }
+
+    // Support both authenticated requests and User-ID header (for proxy service)
+    let userId: string;
+    
+    if (req.headers['user-id']) {
+      userId = req.headers['user-id'] as string;
+    } else if (req.user) {
+      userId = req.user.id;
+    } else {
+      return res.status(401).json(createAPIResponse(
+        undefined,
+        { code: 'AUTHENTICATION_ERROR', message: 'Authentication required' },
+        req.id
+      ));
+    }
+
+    const auditLog = await prisma.auditLog.create({
+      data: {
+        userId,
+        eventType: validation.data.eventType,
+        requestId: validation.data.requestId,
+        metadata: validation.data.metadata || {},
+        ipAddress: validation.data.ipAddress || req.ip || '127.0.0.1',
+        userAgent: validation.data.userAgent || req.get('User-Agent') || 'Unknown',
+        timestamp: new Date()
+      }
+    });
+
+    res.status(201).json(createAPIResponse(auditLog, undefined, req.id));
+  } catch (error) {
+    next(error);
+    return;
+  }
+});
+
+// Create usage record (for proxy service)
+auditRoutes.post('/usage', async (req, res, next): Promise<any> => {
+  try {
+    const validation = validateRequest(CreateUsageSchema, req.body);
+    if (!validation.success) {
+      return res.status(400).json(createAPIResponse(
+        undefined,
+        { code: 'VALIDATION_ERROR', message: 'Invalid usage data', details: { errors: validation.errors } },
+        req.id
+      ));
+    }
+
+    // Support both authenticated requests and User-ID header (for proxy service)
+    let userId: string;
+    
+    if (req.headers['user-id']) {
+      userId = req.headers['user-id'] as string;
+    } else if (req.user) {
+      userId = req.user.id;
+    } else {
+      return res.status(401).json(createAPIResponse(
+        undefined,
+        { code: 'AUTHENTICATION_ERROR', message: 'Authentication required' },
+        req.id
+      ));
+    }
+
+    const usage = await prisma.usage.create({
+      data: {
+        userId,
+        provider: validation.data.provider,
+        model: validation.data.model,
+        inputTokens: validation.data.inputTokens,
+        outputTokens: validation.data.outputTokens,
+        totalTokens: validation.data.totalTokens,
+        cost: validation.data.cost || 0,
+        processingTimeMs: validation.data.processingTimeMs,
+        piiDetected: validation.data.piiDetected || false,
+        rulesTriggered: validation.data.rulesTriggered || [],
+        requestId: validation.data.requestId,
+        timestamp: new Date()
+      }
+    });
+
+    res.status(201).json(createAPIResponse(usage, undefined, req.id));
+  } catch (error) {
+    next(error);
+    return;
+  }
+});
+
+auditRoutes.get('/logs', async (req, res, next): Promise<any> => {
   try {
     // Convert query string parameters to proper types
     const queryData = {
@@ -29,9 +156,24 @@ auditRoutes.get('/logs', requireUser, async (req, res, next): Promise<any> => {
     const { page = 1, limit = 20, sortBy, sortOrder = 'desc' } = validation.data;
     const skip = (page - 1) * limit;
 
-    const where = req.user!.role === 'ADMIN' 
-      ? {} 
-      : { userId: req.user!.id };
+    // Support both authenticated requests and User-ID header (for proxy service)
+    let userId: string | undefined;
+    let isAdmin = false;
+    
+    if (req.headers['user-id']) {
+      userId = req.headers['user-id'] as string;
+    } else if (req.user) {
+      userId = req.user.id;
+      isAdmin = req.user.role === 'ADMIN';
+    } else {
+      return res.status(401).json(createAPIResponse(
+        undefined,
+        { code: 'AUTHENTICATION_ERROR', message: 'Authentication required' },
+        req.id
+      ));
+    }
+
+    const where = isAdmin ? {} : { userId };
 
     const [logs, total] = await Promise.all([
       prisma.auditLog.findMany({
@@ -130,10 +272,26 @@ auditRoutes.get('/usage', requireUser, async (req, res, next): Promise<any> => {
   }
 });
 
-auditRoutes.get('/analytics/activity', requireUser, async (req, res, next): Promise<any> => {
+auditRoutes.get('/analytics/activity', async (req, res, next): Promise<any> => {
   try {
-    const userId = req.user!.role === 'ADMIN' ? undefined : req.user!.id;
-    const where = userId ? { userId } : {};
+    // Support both authenticated requests and User-ID header (for proxy service)
+    let userId: string | undefined;
+    let isAdmin = false;
+    
+    if (req.headers['user-id']) {
+      userId = req.headers['user-id'] as string;
+    } else if (req.user) {
+      userId = req.user.id;
+      isAdmin = req.user.role === 'ADMIN';
+    } else {
+      return res.status(401).json(createAPIResponse(
+        undefined,
+        { code: 'AUTHENTICATION_ERROR', message: 'Authentication required' },
+        req.id
+      ));
+    }
+
+    const where = isAdmin ? {} : { userId };
 
     // Get last 24 hours of data, grouped by hour
     const now = new Date();
@@ -195,10 +353,26 @@ auditRoutes.get('/analytics/activity', requireUser, async (req, res, next): Prom
   }
 });
 
-auditRoutes.get('/analytics/providers', requireUser, async (req, res, next): Promise<any> => {
+auditRoutes.get('/analytics/providers', async (req, res, next): Promise<any> => {
   try {
-    const userId = req.user!.role === 'ADMIN' ? undefined : req.user!.id;
-    const where = userId ? { userId } : {};
+    // Support both authenticated requests and User-ID header (for proxy service)
+    let userId: string | undefined;
+    let isAdmin = false;
+    
+    if (req.headers['user-id']) {
+      userId = req.headers['user-id'] as string;
+    } else if (req.user) {
+      userId = req.user.id;
+      isAdmin = req.user.role === 'ADMIN';
+    } else {
+      return res.status(401).json(createAPIResponse(
+        undefined,
+        { code: 'AUTHENTICATION_ERROR', message: 'Authentication required' },
+        req.id
+      ));
+    }
+
+    const where = isAdmin ? {} : { userId };
 
     const providerStats = await prisma.usage.groupBy({
       by: ['provider'],
@@ -232,10 +406,26 @@ auditRoutes.get('/analytics/providers', requireUser, async (req, res, next): Pro
   }
 });
 
-auditRoutes.get('/analytics/summary', requireUser, async (req, res, next): Promise<any> => {
+auditRoutes.get('/analytics/summary', async (req, res, next): Promise<any> => {
   try {
-    const userId = req.user!.role === 'ADMIN' ? undefined : req.user!.id;
-    const where = userId ? { userId } : {};
+    // Support both authenticated requests and User-ID header (for proxy service)
+    let userId: string | undefined;
+    let isAdmin = false;
+    
+    if (req.headers['user-id']) {
+      userId = req.headers['user-id'] as string;
+    } else if (req.user) {
+      userId = req.user.id;
+      isAdmin = req.user.role === 'ADMIN';
+    } else {
+      return res.status(401).json(createAPIResponse(
+        undefined,
+        { code: 'AUTHENTICATION_ERROR', message: 'Authentication required' },
+        req.id
+      ));
+    }
+
+    const where = isAdmin ? {} : { userId };
 
     // Calculate date ranges for comparison
     const now = new Date();

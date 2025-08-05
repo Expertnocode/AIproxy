@@ -74,4 +74,3 @@ export interface AuthResponse {
     token: string;
     expiresAt: string;
 }
-//# sourceMappingURL=user.d.ts.map

@@ -83,4 +83,3 @@ export interface SecurityAuditMetadata {
         score: number;
     }>;
 }
-//# sourceMappingURL=audit.d.ts.map

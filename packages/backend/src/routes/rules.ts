@@ -5,7 +5,15 @@ import { authenticateToken, requireUser } from '../middleware/auth';
 
 export const ruleRoutes = Router();
 
-ruleRoutes.use(authenticateToken);
+// Apply optional authentication - allows both JWT and User-ID header
+ruleRoutes.use((req, res, next) => {
+  // If User-ID header is present (proxy request), skip JWT authentication
+  if (req.headers['user-id']) {
+    return next();
+  }
+  // Otherwise, require JWT authentication (frontend request)
+  return authenticateToken(req, res, next);
+});
 
 ruleRoutes.get('/', async (req, res, next): Promise<any> => {
   try {
